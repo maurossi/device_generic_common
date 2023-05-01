@@ -111,6 +111,8 @@ static u16 smapi_port;             /* APM control port, normally 0xB2 */
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,37)
 static DECLARE_MUTEX(smapi_mutex);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(6,4,0)
+static DEFINE_SEMAPHORE(smapi_mutex, 1);
 #else
 static DEFINE_SEMAPHORE(smapi_mutex);
 #endif
