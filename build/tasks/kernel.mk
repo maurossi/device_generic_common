@@ -31,11 +31,28 @@ KERNEL_MAKEFILE_LOCATION := "$(ROM_FOLDER_LOCATION)/kernel/Makefile"
 VERSION := $(shell grep -m 1 VERSION $(KERNEL_MAKEFILE_LOCATION) | sed 's/^.*= //g')
 PATCHLEVEL := $(shell grep -m 1 PATCHLEVEL $(KERNEL_MAKEFILE_LOCATION) | sed 's/^.*= //g')
 SUBLEVEL := $(shell grep -m 1 SUBLEVEL $(KERNEL_MAKEFILE_LOCATION) | sed 's/^.*= //g')
-
-KERNEL_CLANG_CLAGS := HOSTCC=$(abspath $(LLVM_PREBUILTS_PATH)/clang)
+LLVM_PREBUILTS_PATH_KERNEL := $(subst clang-r383902b1,clang-r468909b,$(LLVM_PREBUILTS_PATH))
+KERNEL_CLANG_CLAGS := HOSTCC=$(abspath $(LLVM_PREBUILTS_PATH_KERNEL)/clang)
 ifeq ($(BUILD_KERNEL_WITH_CLANG),true)
-CROSS_COMPILE := x86_64-linux-androidkernel-
-KERNEL_CLANG_CLAGS += CC=$(abspath $(LLVM_PREBUILTS_PATH)/clang) CLANG_TRIPLE=x86_64-linux-gnu-
+CROSS_COMPILE := $(abspath $(TARGET_TOOLS_PREFIX))
+KERNEL_CLANG_CLAGS += \
+        LLVM=1 \
+        CC=$(abspath $(LLVM_PREBUILTS_PATH_KERNEL)/clang) \
+        LD=$(abspath $(LLVM_PREBUILTS_PATH_KERNEL)/ld.lld) \
+        AR=$(abspath $(LLVM_PREBUILTS_PATH_KERNEL)/llvm-ar) \
+        NM=$(abspath $(LLVM_PREBUILTS_PATH_KERNEL)/llvm-nm) \
+        OBJCOPY=$(abspath $(LLVM_PREBUILTS_PATH_KERNEL)/llvm-objcopy) \
+        OBJDUMP=$(abspath $(LLVM_PREBUILTS_PATH_KERNEL)/llvm-objdump) \
+        READELF=$(abspath $(LLVM_PREBUILTS_PATH_KERNEL)/llvm-readelf) \
+        OBJSIZE=$(abspath $(LLVM_PREBUILTS_PATH_KERNEL)/llvm-size) \
+        STRIP=$(abspath $(LLVM_PREBUILTS_PATH_KERNEL)/llvm-strip) \
+        HOSTCXX=$(abspath $(LLVM_PREBUILTS_PATH_KERNEL)/clang++) \
+        HOSTLD=$(abspath $(LLVM_PREBUILTS_PATH_KERNEL)/ld.lld) \
+        HOSTLDFLAGS=-fuse-ld=lld \
+        HOSTAR=$(abspath $(LLVM_PREBUILTS_PATH_KERNEL)/llvm-ar)
+# If current kernel version >= 5.17
+else ifeq ($(shell expr $(VERSION) \>= 5 "&" $(PATCHLEVEL) \>= 17), 1)
+CROSS_COMPILE ?= /usr/bin/
 # If current kernel version >= 5.9
 else ifeq ($(shell expr $(VERSION) \>= 5 "&" $(PATCHLEVEL) \>= 9), 1)
 CROSS_COMPILE ?= $(abspath $(TARGET_TOOLS_PREFIX))
@@ -89,7 +106,7 @@ $(KERNEL_DOTCONFIG_FILE): $(KERNEL_CONFIG_FILE) $(wildcard $(TARGET_KERNEL_DIFFC
 BUILT_KERNEL_TARGET := $(KBUILD_OUTPUT)/arch/$(TARGET_ARCH)/boot/$(KERNEL_TARGET)
 $(BUILT_KERNEL_TARGET): $(KERNEL_DOTCONFIG_FILE)
 	# A dirty hack to use ar & ld
-	$(hide) mkdir -p $(OUT_DIR)/.path; ln -sf ../../$(LLVM_PREBUILTS_PATH)/llvm-ar $(OUT_DIR)/.path/ar; ln -sf ../../$(LLVM_PREBUILTS_PATH)/ld.lld $(OUT_DIR)/.path/ld
+	$(hide) mkdir -p $(OUT_DIR)/.path; ln -sf ../../$(LLVM_PREBUILTS_PATH_KERNEL)/llvm-ar $(OUT_DIR)/.path/ar; ln -sf ../../$(LLVM_PREBUILTS_PATH_KERNEL)/ld.lld $(OUT_DIR)/.path/ld
 ifeq ($(BUILD_KERNEL_WITH_CLANG),true)
 	$(hide) cd $(OUT_DIR)/.path; ln -sf ../../$(dir $(TARGET_TOOLS_PREFIX))x86_64-linux-androidkernel-* .; ln -sf x86_64-linux-androidkernel-as x86_64-linux-gnu-as
 endif
