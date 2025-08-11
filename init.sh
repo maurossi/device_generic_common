@@ -190,10 +190,37 @@ function init_hal_gralloc()
 			GRALLOC=${GRALLOC:-gbm}
 			video=${video:-1280x768}
 			;&
-		*i915|*radeon|*nouveau|*vmwgfx|*amdgpu)
+		*i915)
+			if [ "$HWACCEL" != "0" ]; then
+				${HWC:+set_property ro.hardware.hwcomposer $HWC}
+				if [ "$(cat /sys/kernel/debug/dri/0/i915_capabilities | grep -e 'gen' -e 'graphics version' | awk '{print $NF}')" -lt 9 ]; then
+					set_property ro.hardware.gralloc ${GRALLOC:-gbm}
+				else
+					set_property ro.hardware.gralloc ${GRALLOC:-gbm}
+				fi
+				[ "$ANGLE" = "1" ] && set_property ro.hardware.egl angle
+				set_drm_mode
+			fi
+			;;
+		*radeon|*vmwgfx)
 			if [ "$HWACCEL" != "0" ]; then
 				${HWC:+set_property ro.hardware.hwcomposer $HWC}
 				set_property ro.hardware.gralloc ${GRALLOC:-gbm}
+				set_drm_mode
+			fi
+			;;
+		*amdgpu)
+			if [ "$HWACCEL" != "0" ]; then
+				${HWC:+set_property ro.hardware.hwcomposer $HWC}
+				set_property ro.hardware.gralloc ${GRALLOC:-gbm}
+				[ "$ANGLE" = "1" ] && set_property ro.hardware.egl angle
+				set_drm_mode
+			fi
+			;;
+		*nouveau)
+			if [ "$HWACCEL" != "0" ]; then
+				${HWC:+set_property ro.hardware.hwcomposer $HWC}
+				set_property ro.hardware.gralloc ${GRALLOC:-gbm_stride}
 				set_drm_mode
 			fi
 			;;
@@ -205,6 +232,8 @@ function init_hal_gralloc()
 	esac
 
 	[ -z "$(getprop ro.hardware.gralloc)" ] && set_property ro.hardware.egl swiftshader
+	# gbm_gralloc does not support (yet) the skia renderengine (default in Android S) possible values gles,threaded,skiagl,skiaglthreaded
+	[ "$(getprop ro.hardware.gralloc | awk '{print substr($0,1,3)}')" = "gbm" ] && set_property debug.renderengine.backend ${RENDER:-threaded}
 	[ -n "$DEBUG" ] && set_property debug.egl.trace error
 }
 
@@ -219,10 +248,20 @@ function init_hal_vulkan()
 {
 	case "$(readlink /sys/class/graphics/fb0/device/driver)" in
 		*i915)
-			set_property ro.hardware.vulkan android-x86
+			if [ "$(cat /sys/kernel/debug/dri/0/i915_capabilities | grep -e 'gen' -e 'graphics version' | awk '{print $NF}')" -lt 9 ]; then
+				set_property ro.hardware.vulkan intel_hasvk
+			else
+				set_property ro.hardware.vulkan intel
+			fi
 			;;
 		*amdgpu)
-			set_property ro.hardware.vulkan radv
+			set_property ro.hardware.vulkan radeon
+			;;
+		*nouveau)
+			set_property ro.hardware.vulkan nouveau
+			;;
+		*virtio_gpu)
+			set_property ro.hardware.vulkan virtio
 			;;
 		*)
 			;;

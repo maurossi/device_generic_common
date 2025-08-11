@@ -11,16 +11,16 @@
 PRODUCT_PACKAGES := \
     amdgpu.ids \
     hwcomposer.drm hwcomposer.drm_minigbm \
-    gralloc.gbm gralloc.minigbm \
-    libGLES_mesa    \
+    gralloc.gbm gralloc.gbm_stride gralloc.minigbm \
+    libGLES_mesa libgallium_dri libglapi dri_gbm \
     libtxc_dxtn     \
 
 PRODUCT_PACKAGES += \
-    libEGL_swiftshader \
-    libGLESv1_CM_swiftshader \
-    libGLESv2_swiftshader \
-    vulkan.android-x86 \
-    vulkan.radv
+    libEGL_swiftshader libEGL_angle \
+    libGLESv1_CM_swiftshader libGLESv1_CM_angle \
+    libGLESv2_swiftshader libGLESv2_angle libfeature_support_angle \
+    vulkan.android-x86 vulkan.intel vulkan.intel_hasvk \
+    vulkan.radv vulkan.radeon vulkan.nouveau vulkan.pastel
 
 PRODUCT_PROPERTY_OVERRIDES := \
     ro.opengles.version = 196608 \

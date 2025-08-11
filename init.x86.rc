@@ -5,10 +5,13 @@ on early-init
 
     write /sys/module/xt_qtaguid/parameters/ctrl_write_limited N
 
+    mount debugfs debugfs /sys/kernel/debug
+    chmod 0755 /sys/kernel/debug
+
     export force_s3tc_enable true
     export EGL_LOG_LEVEL info
 #   export EGL_DRIVERS egl_dri2
-
+    export NVK_I_WANT_A_BROKEN_VULKAN_DRIVER true
     exec u:r:init:s0 -- /sbin/modprobe sdcardfs
 
 on init
